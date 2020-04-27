@@ -33,3 +33,8 @@ body {
     border: "none";
     font-size: x-large;
 }
+
+.toggle {
+    padding: 5px;
+    margin: 10px;
+}

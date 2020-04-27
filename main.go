@@ -23,7 +23,9 @@ var upgrader = websocket.Upgrader{
 
 // Config store gloabl settings
 type Config struct {
-	Port int `json:"port"`
+	Port        int    `json:"port"`
+	SSLCertPath string `json:"sslcertpath"`
+	SSLKeyPath  string `json:"sslkeypath"`
 }
 
 // Message for socket commun
@@ -79,24 +81,6 @@ func handleStatic(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
 }
 
-func main() {
-
-	conf := getConfig()
-
-	// static
-	authenticator := auth.NewBasicAuthenticator("wshoppingcart", auth.HtpasswdFileProvider("wshoppingcart-logins.htpasswd"))
-	http.HandleFunc("/", authenticator.Wrap(handleStatic))
-
-	// websocket
-	http.HandleFunc("/ws", authenticator.Wrap(handleWSauth))
-
-	log.Printf("Server started on port %d", conf.Port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
-}
-
 // Send message over websocket, if it fails, close and remove websocket.
 func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 	log.Printf("sending user %v (%v) message command %v...", user, ws.RemoteAddr().String(), msg.Command)
@@ -113,28 +97,21 @@ func handleWSauth(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 }
 
 func handleWS(w http.ResponseWriter, r *http.Request, user string) {
-	log.Printf("handleconnections! ")
-	// Upgrade initial GET request to a websocket
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Make sure we close the connection when the function returns
 	defer ws.Close()
 
-	// Register our new client
-	clients[ws] = user
+	clients[ws] = user // register client websocket
 
-	for {
+	for { // read loop
 		var msg Message
-		// Read in a new message as JSON and map it to a Message object
-		err := ws.ReadJSON(&msg)
-		if err != nil {
-			log.Printf("error handleconn (%v) : %v", ws.RemoteAddr().String(), err)
+		if err := ws.ReadJSON(&msg); err != nil {
+			log.Printf("error handleconn, remove client (%v) : %v", ws.RemoteAddr().String(), err)
 			delete(clients, ws)
 			break
 		}
-		// Send the newly received message to the broadcast channel
 		log.Print("received cmd: " + msg.Command)
 		if msg.Command == "getthings" { // only for this client
 			msg2 := thingsRead(user)
@@ -143,12 +120,33 @@ func handleWS(w http.ResponseWriter, r *http.Request, user string) {
 		} else if msg.Command == "updateFromClient" {
 			thingsWrite(user, &msg)
 			msg.Command = "update"
-			// send to others
-			for cws, cuser := range clients {
+			for cws, cuser := range clients { // send to others
 				if cuser == user && cws != ws {
 					sendHandleError(cws, user, msg)
 				}
 			}
 		}
+	}
+}
+
+func main() {
+
+	conf := getConfig()
+
+	// http basic auth
+	authenticator := auth.NewBasicAuthenticator("wshoppingcart", auth.HtpasswdFileProvider("wshoppingcart-logins.htpasswd"))
+	http.HandleFunc("/", authenticator.Wrap(handleStatic))
+	http.HandleFunc("/ws", authenticator.Wrap(handleWSauth))
+
+	log.Printf("Starting server on port %d...", conf.Port)
+
+	var err error
+	if conf.SSLKeyPath != "" {
+		err = http.ListenAndServeTLS(fmt.Sprintf(":%d", conf.Port), conf.SSLCertPath, conf.SSLKeyPath, nil)
+	} else {
+		err = http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil)
+	}
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
 	}
 }

@@ -5,7 +5,14 @@ window.onload = function() {
     mobileConsole.options({ showOnError: true, proxyConsole: false, isCollapsed: true, catchErrors: true });
     mobileConsole.toggleCollapsed();
 
-    var ws = new WebSocket("ws://" + location.host + "/ws");
+    var cart = document.getElementById("cart");
+    var stash = document.getElementById("stash");
+
+    document.getElementById("btogglestash").onclick = function() { 
+        stash.style.display = (stash.style.display === "none") ? "block" : "none";
+    }
+
+    var ws = new WebSocket(((this.location.protocol === "https:") ? "wss://" : "ws://") + location.host + "/ws");
     ws.onopen = function(evt) {
         console.log("wsOPEN");
         var msg = { command: "getthings" }
@@ -40,7 +47,6 @@ window.onload = function() {
             if (event.detail === 1) {
               timer = setTimeout(() => {
                 // single click: move to other stack
-                console.log("a: ", event.target.innerHTML, " parent: ", event.target.parentNode.id);
                 var targetid = (event.target.parentNode.id == "cart") ? "stash" : "cart";
                 document.getElementById(targetid).appendChild(event.target);
                 sendItems()
@@ -75,7 +81,6 @@ window.onload = function() {
         cis = document.getElementById(id).children;
         var arr = [];
         for (i = 0; i < cis.length; i++) {
-            console.log("BBBB ", cis[i])
             if (cis[i].classList.contains("thing")) arr.push(cis[i].innerHTML);
         }
         return arr
@@ -92,5 +97,7 @@ window.onload = function() {
         document.getElementById(parentid).appendChild(newThing("new"))
         sendItems()
     }
+
+    stash.style.display = "none"; // hide stash on startup
 
 }
