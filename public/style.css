@@ -2,12 +2,13 @@ body {
     display: block;
     background-color: #B0B0B0;
     font-family: Arial, Helvetica, sans-serif;
-    line-height: 120%;
+    /* line-height: 120%; */
     font-size: x-large;
 }
 
 .grid > div {
-    padding: 15px;
+    padding: 5px 5px;
+    vertical-align: middle;
     margin: 6px;
     display: inline-block;
     background-color: aqua;
@@ -31,7 +32,7 @@ body {
     background-color: "#FA2";
     border-radius: 7px;
     border: "none";
-    height: 55px;
+    /* height: 55px; */
     font-size: x-large;
-    padding: "2px 8px";
+    /* padding: "2px 8px"; */
 }

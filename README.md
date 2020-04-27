@@ -1,9 +1,8 @@
 # wshoppingcart-go
 
 TODO
-
-client: edit, delete, move between cart and stash (click?)
-
+* test apache ssl proxy!!! if this doesn't work...
+* go-bindata or so!
 
 ```
 go build

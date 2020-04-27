@@ -15,42 +15,69 @@ window.onload = function() {
         console.log("wsCLOSE");
         ws = null;
     }
-
-    function replaceChildren(id, arr) {
-        var e = document.getElementById(id);
-        e.innerHTML = ""
-        for (var i = 0; i < arr.length; i++) {
-            var newe = document.createElement("div")
-            newe.innerHTML = arr[i]
-            // TODO doesn't work properly...
-            newe.onclick = function(a) { // move to other (don't use newe here...)
-                console.log("a: ", a.target.innerHTML, " parent: ", a.target.parentNode.id);
-                var targetid = (a.target.parentNode.id == "cart") ? "stash" : "cart";
-                document.getElementById(targetid).appendChild(newe);
-                sendItems()
-            }
-            e.appendChild(newe)
-        }
-    }
-
     ws.onmessage = function(evt) {
         console.log("wsRESPONSE: " + evt.data);
         var j = JSON.parse(evt.data);
         if (j.command == "update") {
             replaceChildren("cart", j.cart);
             replaceChildren("stash", j.stash);
-            sortable(".grid", { acceptFrom: ".grid" });
+            // initialize drag drop and listen for sort events
+            var s = sortable('.grid', { acceptFrom: ".grid", items: ':not(.header)' })
+            for (var i = 0; i<2; i++) s[i].addEventListener('sortupdate', function(e) { sendItems(); });
+            document.getElementById("bcartadd").onclick = function() { addNew("cart") }
+            document.getElementById("bstashadd").onclick = function() { addNew("stash") }
         }
     }
-
     ws.onerror = function(evt) {
         console.log("wsERROR: " + evt.data);
+    }
+
+    function newThing(name) {
+        var e = document.createElement("div")
+        e.className = "thing"
+        e.innerHTML = name
+        e.onclick = function(event) {
+            if (event.detail === 1) {
+              timer = setTimeout(() => {
+                // single click: move to other stack
+                console.log("a: ", event.target.innerHTML, " parent: ", event.target.parentNode.id);
+                var targetid = (event.target.parentNode.id == "cart") ? "stash" : "cart";
+                document.getElementById(targetid).appendChild(event.target);
+                sendItems()
+              }, 200)
+            }
+          }
+        e.ondblclick = function(event) {
+            clearTimeout(timer)
+            // double click: rename
+            var n = event.target
+            var res = prompt("New name:", n.innerHTML);
+            if (res != null) {
+                if (res == "") n.remove()
+                else n.innerHTML = res
+                sendItems()
+            }
+        }
+        return e
+    }
+
+    function replaceChildren(id, arr) {
+        var e = document.getElementById(id);
+        // e.innerHTML = e.children[0].innerHTML; // remove all but first (header)
+        while (e.childNodes.length > 3) e.removeChild(e.lastChild);
+
+        for (var i = 0; i < arr.length; i++) {
+            e.appendChild(newThing(arr[i]))
+        }
     }
 
     function htmlColl2Arr(id) {
         cis = document.getElementById(id).children;
         var arr = [];
-        for (i = 0; i < cis.length; i++) arr.push(cis[i].innerHTML);
+        for (i = 0; i < cis.length; i++) {
+            console.log("BBBB ", cis[i])
+            if (cis[i].classList.contains("thing")) arr.push(cis[i].innerHTML);
+        }
         return arr
     }
 
@@ -61,22 +88,9 @@ window.onload = function() {
         ws.send(JSON.stringify(msg));
     }
 
-    // listen for sort events
-    for (var i = 0; i < 2; i++) sortable('.grid')[i].addEventListener('sortupdate', function(e) {
-        sendItems();
-    });
-
-    function addNewNotify(id) {
-        var newe = document.createElement("div")
-        newe.innerHTML = "new"
-        document.getElementById(id).appendChild(newe)
+    function addNew(parentid) {
+        document.getElementById(parentid).appendChild(newThing("new"))
         sendItems()
-    }
-    this.document.getElementById("bcartadd").onclick = function() {
-        addNewNotify("cart")
-    }
-    this.document.getElementById("bstashadd").onclick = function() {
-        addNewNotify("stash")
     }
 
 }
