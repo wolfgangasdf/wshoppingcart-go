@@ -1,7 +1,9 @@
 # wshoppingcart-go
 
-A multi-user shopping cart app, realtime synchronized with "cart" and "stash".
-It was a test with golang http, ssl with letsencrypt certificate, websockets, go-bindata, html5 drag'n'drop... 
+A multi-user shopping cart app with a "cart" and a "stash", drag'n'drop, realtime synchronized.
+It is a test with golang http, ssl with letsencrypt certificate, secure websockets, go-bindata, html5 drag'n'drop,... 
+
+* Rename item: if name is empty it is removed.
 
 ### Add user to htpasswd password file (`-c` creates a new file):
 
@@ -45,9 +47,9 @@ GOOS=linux GOARCH=amd64 go build -o wshoppingcart-linux-amd64
 ### test websocket security in js console chrome (incognito mode)
 ```
 var ws = new WebSocket("ws://localhost:8000/ws");
-ws.send('{ "command": "update" }');
+var ws = new WebSocket("wss://quphotonics.org:8000/ws");
 ```
-this must fail if no http basic auth, and work with!
+this must fail!
 
 # uses
 

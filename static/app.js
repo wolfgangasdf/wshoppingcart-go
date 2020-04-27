@@ -39,6 +39,15 @@ window.onload = function() {
         console.log("wsERROR: " + evt.data);
     }
 
+    function editThing(n) {
+        var res = prompt("New name:", n.innerHTML);
+        if (res != null) {
+            if (res == "") n.remove()
+            else n.innerHTML = res
+            sendItems()
+        }
+    }
+
     function newThing(name) {
         var e = document.createElement("div")
         e.className = "thing"
@@ -57,12 +66,7 @@ window.onload = function() {
             clearTimeout(timer)
             // double click: rename
             var n = event.target
-            var res = prompt("New name:", n.innerHTML);
-            if (res != null) {
-                if (res == "") n.remove()
-                else n.innerHTML = res
-                sendItems()
-            }
+            editThing(n);
         }
         return e
     }
@@ -94,8 +98,8 @@ window.onload = function() {
     }
 
     function addNew(parentid) {
-        document.getElementById(parentid).appendChild(newThing("new"))
-        sendItems()
+        var n = document.getElementById(parentid).appendChild(newThing("new"));
+        editThing(n);
     }
 
     stash.style.display = "none"; // hide stash on startup
