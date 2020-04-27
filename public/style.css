@@ -1,0 +1,37 @@
+body {
+    display: block;
+    background-color: #B0B0B0;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 120%;
+    font-size: x-large;
+}
+
+.grid > div {
+    padding: 15px;
+    margin: 6px;
+    display: inline-block;
+    background-color: aqua;
+}
+
+#cart {
+    background-color: darksalmon;
+}
+
+#stash {
+    background-color: darkseagreen;
+}
+
+#js-mobile-console {
+    font-size: small;
+    line-height: normal;
+}
+
+.button {
+    color: "#333";
+    background-color: "#FA2";
+    border-radius: 7px;
+    border: "none";
+    height: 55px;
+    font-size: x-large;
+    padding: "2px 8px";
+}
