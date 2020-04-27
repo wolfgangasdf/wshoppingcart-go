@@ -76,7 +76,7 @@ func thingsWrite(user string, msg *Message) {
 }
 
 func handleStatic(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	http.FileServer(http.Dir("public")).ServeHTTP(w, &r.Request)
+	http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
 }
 
 func main() {

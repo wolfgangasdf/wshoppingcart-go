@@ -15,7 +15,14 @@ Create password file (`-c` creates a new file):
 htpasswd -c wshoppingcart.htpasspwd <username>
 ```
 
+### package static files
+go get -u github.com/go-bindata/go-bindata/...
+go-bindata -fs -prefix "static/" static/
+
+### build & run
 go build && ./wshoppingcart-go
+
+
 
 ### test websocket security in js console chrome (incognito mode)
 ```
