@@ -7,36 +7,50 @@ window.onload = function() {
 
     var cart = document.getElementById("cart");
     var stash = document.getElementById("stash");
+    var wait = document.getElementById("wait");
 
     document.getElementById("btogglestash").onclick = function() { 
         stash.style.display = (stash.style.display === "none") ? "block" : "none";
     }
 
-    var ws = new WebSocket(((this.location.protocol === "https:") ? "wss://" : "ws://") + location.host + "/ws");
-    ws.onopen = function(evt) {
-        console.log("wsOPEN");
-        var msg = { command: "getthings" }
-        ws.send(JSON.stringify(msg));
-    }
-    ws.onclose = function(evt) {
-        console.log("wsCLOSE");
-        ws = null;
-    }
-    ws.onmessage = function(evt) {
-        console.log("wsRESPONSE: " + evt.data);
-        var j = JSON.parse(evt.data);
-        if (j.command == "update") {
-            replaceChildren("cart", j.cart);
-            replaceChildren("stash", j.stash);
-            // initialize drag drop and listen for sort events
-            var s = sortable('.grid', { acceptFrom: ".grid", items: ':not(.header)' })
-            for (var i = 0; i<2; i++) s[i].addEventListener('sortupdate', function(e) { sendItems(); });
-            document.getElementById("bcartadd").onclick = function() { addNew("cart") }
-            document.getElementById("bstashadd").onclick = function() { addNew("stash") }
+    var ws = null
+    function startWebsocket() {
+        ws = new WebSocket(((this.location.protocol === "https:") ? "wss://" : "ws://") + location.host + "/ws");
+        ws.onopen = function(evt) {
+            console.log("wsOPEN ");
+            wait.style.display = "none"
+            var msg = { command: "getthings" }
+            ws.send(JSON.stringify(msg));
+        }
+        ws.onclose = function(evt) {
+            console.log("wsCLOSE");
+            wait.style.display = "block"
+            setTimeout(function(){startWebsocket()}, 1000);
+        }
+        ws.onmessage = function(evt) {
+            console.log("wsRESPONSE!");
+            var j = JSON.parse(evt.data);
+            if (j.command == "update") {
+                replaceChildren("cart", j.cart);
+                replaceChildren("stash", j.stash);
+                // initialize drag drop and listen for sort events
+                var s = sortable('.grid', { acceptFrom: ".grid", items: ':not(.header)' })
+                for (var i = 0; i<2; i++) s[i].addEventListener('sortupdate', function(e) { sendItems(); });
+                document.getElementById("bcartadd").onclick = function() { addNew("cart") }
+                document.getElementById("bstashadd").onclick = function() { addNew("stash") }
+            }
+        }
+        ws.onerror = function(evt) {
+            console.log("wsERROR: " + evt.data);
         }
     }
-    ws.onerror = function(evt) {
-        console.log("wsERROR: " + evt.data);
+    startWebsocket()
+
+    function send2server(m) {
+        if (ws == null) 
+            window.location.reload(false); 
+        else
+            ws.send(m);
     }
 
     function editThing(n) {
@@ -94,7 +108,7 @@ window.onload = function() {
         var ac = htmlColl2Arr("cart")
         var as = htmlColl2Arr("stash")
         var msg = { command: "updateFromClient", cart: ac, stash: as };
-        ws.send(JSON.stringify(msg));
+        send2server(JSON.stringify(msg))
     }
 
     function addNew(parentid) {
