@@ -22,21 +22,11 @@ Leave out the ssl settings to use http, port defaults to 8000:
 }
 ```
 
-### run
-```
-go build && ./wshoppingcart-go
-```
-
-
-### package static files
+### package static files, build
 ```
 go get -u github.com/go-bindata/go-bindata/... # but make sure to get 3.1.3, grrr
 go-bindata -fs -prefix "static/" static/
 go-bindata -debug -fs -prefix "static/" static/ # use normal files
-```
-
-### build & run
-```
 go build && ./wshoppingcart-go
 ```
 

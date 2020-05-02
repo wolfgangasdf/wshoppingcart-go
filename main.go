@@ -6,13 +6,16 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	auth "github.com/abbot/go-http-auth"
 	"github.com/gorilla/websocket"
+	"github.com/valyala/fasttemplate"
 )
 
 var clients = make(map[*websocket.Conn]string) // connected clients, string is username
 var broadcast = make(chan Message)             // broadcast channel
+var staticmodtime int64 = 0
 
 // Configure the upgrader
 var upgrader = websocket.Upgrader{
@@ -77,10 +80,6 @@ func thingsWrite(user string, msg *Message) {
 
 }
 
-func handleStatic(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
-}
-
 // Send message over websocket, if it fails, close and remove websocket.
 func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 	log.Printf("sending user %v (%v) message command %v...", user, ws.RemoteAddr().String(), msg.Command)
@@ -92,18 +91,26 @@ func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 	}
 }
 
-func handleWSauth(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	handleWS(w, &r.Request, r.Username)
+func handleIndex(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+	template := MustAsset("index.html")
+	t := fasttemplate.New(string(template), "{{", "}}")
+	t.Execute(w, map[string]interface{}{
+		"staticmodtime": strconv.FormatInt(staticmodtime, 10),
+	})
 }
 
-func handleWS(w http.ResponseWriter, r *http.Request, user string) {
-	ws, err := upgrader.Upgrade(w, r, nil)
+func handleStatic(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+	http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
+}
+
+func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+	ws, err := upgrader.Upgrade(w, &r.Request, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer ws.Close()
 
-	clients[ws] = user // register client websocket
+	clients[ws] = r.Username // register client websocket
 
 	for { // read loop
 		var msg Message
@@ -114,15 +121,15 @@ func handleWS(w http.ResponseWriter, r *http.Request, user string) {
 		}
 		log.Print("received cmd: " + msg.Command)
 		if msg.Command == "getthings" { // only for this client
-			msg2 := thingsRead(user)
+			msg2 := thingsRead(r.Username)
 			msg2.Command = "update"
-			sendHandleError(ws, user, msg2)
+			sendHandleError(ws, r.Username, msg2)
 		} else if msg.Command == "updateFromClient" {
-			thingsWrite(user, &msg)
+			thingsWrite(r.Username, &msg)
 			msg.Command = "update"
 			for cws, cuser := range clients { // send to others
-				if cuser == user && cws != ws {
-					sendHandleError(cws, user, msg)
+				if cuser == r.Username && cws != ws {
+					sendHandleError(cws, r.Username, msg)
 				}
 			}
 		}
@@ -133,10 +140,22 @@ func main() {
 
 	conf := getConfig()
 
+	// get latest static file modTime to avoid js caching https://stackoverflow.com/a/8392506
+	for _, v := range _bindata {
+		a, err := v()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if staticmodtime < a.info.ModTime().Unix() {
+			staticmodtime = a.info.ModTime().Unix()
+		}
+	}
+
 	// http basic auth
 	authenticator := auth.NewBasicAuthenticator("wshoppingcart", auth.HtpasswdFileProvider("wshoppingcart-logins.htpasswd"))
-	http.HandleFunc("/", authenticator.Wrap(handleStatic))
-	http.HandleFunc("/ws", authenticator.Wrap(handleWSauth))
+	http.Handle("/static/", http.StripPrefix("/static/", authenticator.Wrap(handleStatic)))
+	http.HandleFunc("/ws", authenticator.Wrap(handleWS))
+	http.HandleFunc("/", authenticator.Wrap(handleIndex))
 
 	log.Printf("Starting server on port %d...", conf.Port)
 
