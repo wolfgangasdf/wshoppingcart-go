@@ -92,7 +92,6 @@ func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 }
 
 func handleFiles(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	fmt.Println("hi: ruri=", r.Request.URL.RequestURI())
 	switch r.Request.URL.RequestURI() {
 	case "/":
 		template := MustAsset("index.html")
