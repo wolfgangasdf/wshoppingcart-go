@@ -93,13 +93,16 @@ func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 
 func handleFiles(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	fmt.Println("hi: ruri=", r.Request.URL.RequestURI())
-	if r.Request.URL.RequestURI() == "/" {
+	switch r.Request.URL.RequestURI() {
+	case "/":
 		template := MustAsset("index.html")
 		t := fasttemplate.New(string(template), "{{", "}}")
 		t.Execute(w, map[string]interface{}{
 			"staticmodtime": strconv.FormatInt(staticmodtime, 10),
 		})
-	} else {
+	case "/serviceWorker.js", "/manifest.json": // PWA disabled
+		w.WriteHeader(404)
+	default:
 		http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
 	}
 }

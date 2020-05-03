@@ -2,7 +2,7 @@
     "name": "wshoppingcart",
     "short_name": "wshoppingcart",
     "lang": "en-US",
-    "start_url": "",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "white",
     "theme_color": "white",
