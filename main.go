@@ -92,6 +92,7 @@ func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 }
 
 func handleIndex(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+	fmt.Println("hi: r=", r.Request.URL.RequestURI())
 	template := MustAsset("index.html")
 	t := fasttemplate.New(string(template), "{{", "}}")
 	t.Execute(w, map[string]interface{}{
@@ -100,6 +101,7 @@ func handleIndex(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 }
 
 func handleStatic(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+	fmt.Println("hs: r=", r.Request.URL.RequestURI())
 	http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
 }
 

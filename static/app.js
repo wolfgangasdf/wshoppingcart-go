@@ -1,6 +1,10 @@
 
 window.onload = function() {
 
+    const LSLASTSYNCMS = "lastsyncms";
+    const LSSEND2SERVER = "send2server";
+    const SYNCTIMEOUTS = 60; // after this offline time in seconds, ask before pushing local changes.
+
     mobileConsole.show(); // https://github.com/B1naryStudio/js-mobile-console
     mobileConsole.options({ showOnError: true, proxyConsole: false, isCollapsed: true, catchErrors: true });
     mobileConsole.toggleCollapsed();
@@ -9,23 +13,46 @@ window.onload = function() {
     var stash = document.getElementById("stash");
     var wait = document.getElementById("wait");
 
+    stash.style.display = "none";
+    cart.addEventListener('sortupdate', function(e) { sendItems(); });
+    stash.addEventListener('sortupdate', function(e) { sendItems(); });
+
     document.getElementById("btogglestash").onclick = function() { 
         stash.style.display = (stash.style.display === "none") ? "block" : "none";
     }
 
+    document.getElementById("bcartadd").onclick = function() { addNew("cart") }
+    document.getElementById("bstashadd").onclick = function() { addNew("stash") }
+
+    function updateLastsync() { window.localStorage.setItem(LSLASTSYNCMS, Date.now()); }
+
+    var wsWasOpen = false;
     var ws = null
     function startWebsocket() {
         ws = new WebSocket(((this.location.protocol === "https:") ? "wss://" : "ws://") + location.host + "/ws");
         ws.onopen = function(evt) {
             console.log("wsOPEN ");
+            var ls = window.localStorage.getItem(LSSEND2SERVER);
+            var lslastsyncms = parseInt(window.localStorage.getItem(LSLASTSYNCMS))
+            if (ls) {
+                var secs = Math.round((Date.now() - lslastsyncms) / 1000);
+                console.log(`  secs = ${secs}`);
+                if (secs < SYNCTIMEOUTS || confirm(`Last sync with server is ${secs}s ago, should I push to server (cancel: poll)?`)) {
+                    ws.send(ls);
+                }
+            }
+            window.localStorage.removeItem(LSSEND2SERVER);
             wait.style.display = "none"
-            var msg = { command: "getthings" }
-            ws.send(JSON.stringify(msg));
+            ws.send(JSON.stringify({ command: "getthings" }));
+            wsWasOpen = true;
         }
-        ws.onclose = function(evt) {
-            console.log("wsCLOSE");
+        ws.onclose = function(evt) { // is also called after unsuccessful connection attempt!
+            console.log("wsCLOSE ", ws.readyState, wsWasOpen);
+            if (wsWasOpen) updateLastsync();
             wait.style.display = "block"
             setTimeout(function(){startWebsocket()}, 1000);
+            ws = null;
+            wsWasOpen = false;
         }
         ws.onmessage = function(evt) {
             console.log("wsRESPONSE!");
@@ -33,11 +60,9 @@ window.onload = function() {
             if (j.command == "update") {
                 replaceChildren("cart", j.cart);
                 replaceChildren("stash", j.stash);
-                // initialize drag drop and listen for sort events
+                // (re)initialize drag drop and listen for sort events
                 var s = sortable('.grid', { acceptFrom: ".grid", items: ':not(.header)' })
-                for (var i = 0; i<2; i++) s[i].addEventListener('sortupdate', function(e) { sendItems(); });
-                document.getElementById("bcartadd").onclick = function() { addNew("cart") }
-                document.getElementById("bstashadd").onclick = function() { addNew("stash") }
+                updateLastsync();
             }
         }
         ws.onerror = function(evt) {
@@ -47,10 +72,20 @@ window.onload = function() {
     startWebsocket()
 
     function send2server(m) {
-        if (ws == null) 
-            window.location.reload(false); 
-        else
+        if (ws == null) {
+            window.localStorage.setItem(LSSEND2SERVER, m);
+            console.log("can't send, queue!");
+        } else {
             ws.send(m);
+            updateLastsync();
+        }
+    }
+
+    function sendItems() {
+        var ac = htmlColl2Arr("cart")
+        var as = htmlColl2Arr("stash")
+        var msg = { command: "updateFromClient", cart: ac, stash: as };
+        send2server(JSON.stringify(msg))
     }
 
     function editThing(n) {
@@ -87,9 +122,7 @@ window.onload = function() {
 
     function replaceChildren(id, arr) {
         var e = document.getElementById(id);
-        // e.innerHTML = e.children[0].innerHTML; // remove all but first (header)
-        while (e.childNodes.length > 3) e.removeChild(e.lastChild);
-
+        while (e.childNodes.length > 3) e.removeChild(e.lastChild); // remove all but header
         for (var i = 0; i < arr.length; i++) {
             e.appendChild(newThing(arr[i]))
         }
@@ -104,18 +137,21 @@ window.onload = function() {
         return arr
     }
 
-    function sendItems() {
-        var ac = htmlColl2Arr("cart")
-        var as = htmlColl2Arr("stash")
-        var msg = { command: "updateFromClient", cart: ac, stash: as };
-        send2server(JSON.stringify(msg))
-    }
-
     function addNew(parentid) {
-        var n = document.getElementById(parentid).appendChild(newThing("new"));
+        var n = document.getElementById(parentid).appendChild(newThing(""));
         editThing(n);
     }
 
-    stash.style.display = "none"; // hide stash on startup
-
+    // PWA stuff
+    // if ('serviceWorker' in navigator){
+    //     navigator.serviceWorker.register('/static/serviceWorker.js', { scope: '/' }).then(function(registration){
+    //       console.log('service worker registration succeeded:',registration);
+    //     },
+    //   function(error){
+    //     console.log('service worker registration failed:',error);
+    //   });
+    //   }
+    //   else{
+    //     console.log('service workers are not supported.');
+    //   }
 }
