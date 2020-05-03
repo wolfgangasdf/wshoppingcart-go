@@ -145,13 +145,12 @@ window.onload = function() {
     // PWA stuff
     // if ('serviceWorker' in navigator){
     //     navigator.serviceWorker.register('/serviceWorker.js').then(function(registration){
-    //       console.log('service worker registration succeeded:',registration);
+    //         console.log('service worker registration succeeded:',registration);
     //     },
-    //   function(error){
-    //     console.log('service worker registration failed:',error);
-    //   });
-    //   }
-    //   else{
+    //     function(error){
+    //         console.log('service worker registration failed:',error);
+    //     });
+    // } else {
     //     console.log('service workers are not supported.');
-    //   }
+    // }
 }
