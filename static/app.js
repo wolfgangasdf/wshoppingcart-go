@@ -144,7 +144,7 @@ window.onload = function() {
 
     // PWA stuff
     // if ('serviceWorker' in navigator){
-    //     navigator.serviceWorker.register('/static/serviceWorker.js', { scope: '/' }).then(function(registration){
+    //     navigator.serviceWorker.register('/serviceWorker.js').then(function(registration){
     //       console.log('service worker registration succeeded:',registration);
     //     },
     //   function(error){

@@ -91,18 +91,17 @@ func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 	}
 }
 
-func handleIndex(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	fmt.Println("hi: r=", r.Request.URL.RequestURI())
-	template := MustAsset("index.html")
-	t := fasttemplate.New(string(template), "{{", "}}")
-	t.Execute(w, map[string]interface{}{
-		"staticmodtime": strconv.FormatInt(staticmodtime, 10),
-	})
-}
-
-func handleStatic(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	fmt.Println("hs: r=", r.Request.URL.RequestURI())
-	http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
+func handleFiles(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+	fmt.Println("hi: ruri=", r.Request.URL.RequestURI())
+	if r.Request.URL.RequestURI() == "/" {
+		template := MustAsset("index.html")
+		t := fasttemplate.New(string(template), "{{", "}}")
+		t.Execute(w, map[string]interface{}{
+			"staticmodtime": strconv.FormatInt(staticmodtime, 10),
+		})
+	} else {
+		http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
+	}
 }
 
 func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
@@ -155,9 +154,8 @@ func main() {
 
 	// http basic auth
 	authenticator := auth.NewBasicAuthenticator("wshoppingcart", auth.HtpasswdFileProvider("wshoppingcart-logins.htpasswd"))
-	http.Handle("/static/", http.StripPrefix("/static/", authenticator.Wrap(handleStatic)))
 	http.HandleFunc("/ws", authenticator.Wrap(handleWS))
-	http.HandleFunc("/", authenticator.Wrap(handleIndex))
+	http.HandleFunc("/", authenticator.Wrap(handleFiles))
 
 	log.Printf("Starting server on port %d...", conf.Port)
 
