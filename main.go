@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 
 	auth "github.com/abbot/go-http-auth"
@@ -62,13 +63,13 @@ func thingsRead(user string) Message {
 		if err = json.Unmarshal(b, &msg); err != nil {
 			log.Fatal("Can't parse file: " + err.Error())
 		}
-		msg.Command = ""
 	}
 	return msg
 }
 
 func thingsWrite(user string, msg *Message) {
-	msg.Command = ""
+	msg.Command = ""        // message is not stored
+	sort.Strings(msg.Stash) // sort stash
 	b, err := json.Marshal(msg)
 	if err != nil {
 		log.Fatal("Can't marshal: " + err.Error())

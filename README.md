@@ -1,38 +1,46 @@
 # wshoppingcart-go
 
-A multi-user shopping cart app with a "cart" and a "stash", drag'n'drop, realtime synchronized.
+A very simple multi-user shopping cart app with a "cart" (things to buy) and a "stash" (things in stock), drag'n'drop, realtime synchronized.
 It is a test with golang http, ssl with letsencrypt certificate, secure websockets, go-bindata, html5 drag'n'drop,... 
 
-* Rename item: if name is empty it is removed.
-* If the connection is interrupted, you can continue to use it, it will ask what to do if again online.
+* Click item to move between cart and stash, or drag and drop.
+* Double-click to rename.
+* Delete item: rename with empty name.
+* If the connection is interrupted, you can continue to use it, it will ask what to do if again online. Note that it is not a full progressive web app, you can't start-up offline.
 
-### Add user to htpasswd password file (`-c` creates a new file):
+### Run
+
+Add user to htpasswd password file (`-c` creates a new file):
 
 ```
 htpasswd -c wshoppingcart.htpasswd <username>
 htpasswd wshoppingcart.htpasswd <anotheruser>
 ```
 
-### Settings file
-Leave out the ssl settings to use http, port defaults to 8000:
+Download the executable, put it on some server that is online 24/7, and run it.
+
+### Settings file 
+`wshoppingcart-settings.json`: Leave out the ssl settings to use http, port defaults to 8000:
 ```
 {
 "port" : 8000,
-"sslcertpath" : "/etc/letsencrypt/live/quphotonics.com/fullchain.pem",
-"sslkeypath" : "/etc/letsencrypt/live/quphotonics.com/privkey.pem"
+"sslcertpath" : "/etc/letsencrypt/live/hostname/fullchain.pem",
+"sslkeypath" : "/etc/letsencrypt/live/hostname/privkey.pem"
 }
 ```
+
+The user shopping carts are saved as `wshoppingcart-user-<username>.json`
 
 ### build
 ```
 go get -u github.com/go-bindata/go-bindata/v3/... 
+# one of:
 go-bindata -fs -prefix "static/" static/        # put static files into bindata.go
 go-bindata -debug -fs -prefix "static/" static/ # development: use normal files via bindata.go
-go build && ./wshoppingcart-go
+# one of:
+go build
+GOOS=linux GOARCH=amd64 go build -o wshoppingcart-linux-amd64 # cross-compile, e.g. for linux
 ```
-
-### cross-compile, e.g. for linux
-GOOS=linux GOARCH=amd64 go build -o wshoppingcart-linux-amd64
 
 
 # uses
