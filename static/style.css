@@ -21,6 +21,11 @@ body {
     background-color: darkseagreen;
 }
 
+#help {
+    background-color: #C0C0C0;
+    font-size: large;
+}
+
 #js-mobile-console {
     font-size: small;
     line-height: normal;

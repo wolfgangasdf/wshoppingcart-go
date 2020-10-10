@@ -11,14 +11,20 @@ window.onload = function() {
 
     var cart = document.getElementById("cart");
     var stash = document.getElementById("stash");
+    var help = document.getElementById("help");
     var wait = document.getElementById("wait");
 
     stash.style.display = "none";
+    help.style.display = "none";
     cart.addEventListener('sortupdate', function(e) { sendItems(); });
     stash.addEventListener('sortupdate', function(e) { sendItems(); });
 
     document.getElementById("btogglestash").onclick = function() { 
         stash.style.display = (stash.style.display === "none") ? "block" : "none";
+    }
+
+    document.getElementById("btogglehelp").onclick = function() { 
+        help.style.display = (help.style.display === "none") ? "block" : "none";
     }
 
     document.getElementById("bcartadd").onclick = function() { addNew("cart") }
@@ -50,7 +56,7 @@ window.onload = function() {
             console.log("wsCLOSE ", ws.readyState, wsWasOpen);
             if (wsWasOpen) updateLastsync();
             wait.style.display = "block"
-            setTimeout(function(){startWebsocket()}, 1000);
+            setTimeout(function(){startWebsocket()}, 500);
             ws = null;
             wsWasOpen = false;
         }
