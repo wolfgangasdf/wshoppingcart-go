@@ -96,11 +96,12 @@ window.onload = function() {
 
     function editThing(n) {
         var res = prompt("New name:", n.innerHTML);
-        if (res != null) {
-            if (res == "") n.remove()
-            else n.innerHTML = res
-            sendItems()
+        if (res == null || res == "") {
+            n.remove()
+        } else {
+            n.innerHTML = res
         }
+        sendItems()
     }
 
     function newThing(name) {
