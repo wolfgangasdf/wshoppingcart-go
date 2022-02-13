@@ -1,7 +1,7 @@
 # wshoppingcart-go
 
 A very simple multi-user shopping cart app with a "cart" (things to buy) and a "stash" (things in stock), drag'n'drop, realtime synchronized.
-It is a test with golang http, ssl with letsencrypt certificate, secure websockets, go-bindata, html5 drag'n'drop,... 
+It was just a test with golang http, ssl with letsencrypt certificate, secure websockets, go-bindata, html5 drag'n'drop,... but now I use it daily.
 
 * Click item to move between cart and stash, or drag and drop.
 * Double-click to rename.

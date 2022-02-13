@@ -78,9 +78,9 @@ window.onload = function() {
     startWebsocket()
 
     function send2server(m) {
-        if (ws == null) {
+        if (ws == null || ws.readyState !== WebSocket.OPEN) {
             window.localStorage.setItem(LSSEND2SERVER, m);
-            console.log("can't send, queue!");
+            console.log("can't send, queue! ws=", ws);
         } else {
             ws.send(m);
             updateLastsync();
@@ -112,9 +112,11 @@ window.onload = function() {
             if (event.detail === 1) {
               timer = setTimeout(() => {
                 // single click: move to other stack
-                var targetid = (event.target.parentNode.id == "cart") ? "stash" : "cart";
-                document.getElementById(targetid).appendChild(event.target);
-                sendItems()
+                if (event.target.parentNode != null) {
+                    var targetid = (event.target.parentNode.id == "cart") ? "stash" : "cart";
+                    document.getElementById(targetid).appendChild(event.target);
+                    sendItems()
+                }
               }, 200)
             }
           }
