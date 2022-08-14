@@ -1,11 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 
@@ -15,7 +16,6 @@ import (
 )
 
 var clients = make(map[*websocket.Conn]string) // connected clients, string is username
-var broadcast = make(chan Message)             // broadcast channel
 var staticmodtime int64 = 0
 
 // Configure the upgrader
@@ -41,7 +41,7 @@ type Message struct {
 
 func getConfig() *Config {
 	conf := &Config{Port: 8000}
-	b, err := ioutil.ReadFile("wshoppingcart-settings.json")
+	b, err := os.ReadFile("wshoppingcart-settings.json")
 	if err != nil {
 		log.Println("Can't read config: " + err.Error())
 	} else {
@@ -56,7 +56,7 @@ func thingsFileName(user string) string { return fmt.Sprintf("wshoppingcart-user
 
 func thingsRead(user string) Message {
 	msg := Message{Cart: []string{"thingcart"}, Stash: []string{"thingstash"}}
-	b, err := ioutil.ReadFile(thingsFileName(user))
+	b, err := os.ReadFile(thingsFileName(user))
 	if err != nil {
 		log.Println("Can't open file: " + err.Error())
 	} else {
@@ -74,7 +74,7 @@ func thingsWrite(user string, msg *Message) {
 	if err != nil {
 		log.Fatal("Can't marshal: " + err.Error())
 	} else {
-		if err := ioutil.WriteFile(thingsFileName(user), b, 0644); err != nil {
+		if err := os.WriteFile(thingsFileName(user), b, 0644); err != nil {
 			log.Println("Can't write to file: " + err.Error())
 		}
 	}
@@ -140,6 +140,19 @@ func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	}
 }
 
+// reload certificate each time https://gist.github.com/KaiserWerk/3c1a5e16c4b85dac1923ecb4d1cbd1dc
+func (conf *Config) getCertificate(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
+
+	fmt.Println("GetCertificate() called!")
+
+	caFiles, err := tls.LoadX509KeyPair(conf.SSLCertPath, conf.SSLKeyPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &caFiles, nil
+}
+
 func main() {
 
 	conf := getConfig()
@@ -164,9 +177,11 @@ func main() {
 
 	var err error
 	if conf.SSLKeyPath != "" {
-		err = http.ListenAndServeTLS(fmt.Sprintf(":%d", conf.Port), conf.SSLCertPath, conf.SSLKeyPath, nil)
+		server := &http.Server{Addr: fmt.Sprintf(":%d", conf.Port), Handler: nil, TLSConfig: &tls.Config{GetCertificate: conf.getCertificate}}
+		err = server.ListenAndServeTLS("", "")
 	} else {
-		err = http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil)
+		server := &http.Server{Addr: fmt.Sprintf(":%d", conf.Port), Handler: nil}
+		err = server.ListenAndServe()
 	}
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
