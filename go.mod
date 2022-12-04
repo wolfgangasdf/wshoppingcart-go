@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/abbot/go-http-auth v0.4.0
 	github.com/gorilla/websocket v1.5.0
-	github.com/valyala/fasttemplate v1.2.1
+	github.com/valyala/fasttemplate v1.2.2
 )
 
 require (

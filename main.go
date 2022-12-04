@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -27,9 +26,7 @@ var upgrader = websocket.Upgrader{
 
 // Config store gloabl settings
 type Config struct {
-	Port        int    `json:"port"`
-	SSLCertPath string `json:"sslcertpath"`
-	SSLKeyPath  string `json:"sslkeypath"`
+	Port int `json:"port"`
 }
 
 // Message for socket commun
@@ -140,19 +137,6 @@ func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	}
 }
 
-// reload certificate each time https://gist.github.com/KaiserWerk/3c1a5e16c4b85dac1923ecb4d1cbd1dc
-func (conf *Config) getCertificate(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
-
-	fmt.Println("GetCertificate() called!")
-
-	caFiles, err := tls.LoadX509KeyPair(conf.SSLCertPath, conf.SSLKeyPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return &caFiles, nil
-}
-
 func main() {
 
 	conf := getConfig()
@@ -176,13 +160,8 @@ func main() {
 	log.Printf("Starting server on port %d...", conf.Port)
 
 	var err error
-	if conf.SSLKeyPath != "" {
-		server := &http.Server{Addr: fmt.Sprintf(":%d", conf.Port), Handler: nil, TLSConfig: &tls.Config{GetCertificate: conf.getCertificate}}
-		err = server.ListenAndServeTLS("", "")
-	} else {
-		server := &http.Server{Addr: fmt.Sprintf(":%d", conf.Port), Handler: nil}
-		err = server.ListenAndServe()
-	}
+	server := &http.Server{Addr: fmt.Sprintf(":%d", conf.Port), Handler: nil}
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
