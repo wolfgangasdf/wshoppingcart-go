@@ -95,10 +95,10 @@ window.onload = function() {
     }
 
     function editThing(n) {
-        var res = prompt("New name:", n.innerHTML);
-        if (res == null || res == "") {
+        var res = prompt("Rename (empty to delete):", n.innerHTML);
+        if (res == "") {
             n.remove()
-        } else {
+        } else if (res != null)  {
             n.innerHTML = res
         }
         sendItems()
@@ -108,10 +108,11 @@ window.onload = function() {
         var e = document.createElement("div")
         e.className = "thing"
         e.innerHTML = name
-        e.onclick = function(event) {
+        var longpresstimeout = null;
+        e.onclick = function(event) { // single click: move to other stack
+            if (longpresstimeout != null) return; // just to make sure, if order is down,click,up
             if (event.detail === 1) {
               timer = setTimeout(() => {
-                // single click: move to other stack
                 if (event.target.parentNode != null) {
                     var targetid = (event.target.parentNode.id == "cart") ? "stash" : "cart";
                     document.getElementById(targetid).appendChild(event.target);
@@ -120,12 +121,25 @@ window.onload = function() {
               }, 200)
             }
           }
-        e.ondblclick = function(event) {
+        e.ondblclick = function(event) { // double click: rename item
             clearTimeout(timer)
-            // double click: rename
             var n = event.target
-            editThing(n);
+            editThing(n)
         }
+        e.addEventListener('touchstart', (event) => {  // mobile long press: delete
+            longpresstimeout = setTimeout(function(){
+                if (confirm('Really delete "' + event.target.innerHTML + '"?')) {
+                    event.target.remove()
+                    sendItems()
+                }
+            }, 500)
+        })
+        function cancellongpress() {
+            clearTimeout(longpresstimeout)
+            longpresstimeout = null
+        }
+        e.addEventListener('touchend', cancellongpress);
+        e.addEventListener('touchmove', cancellongpress);
         return e
     }
 

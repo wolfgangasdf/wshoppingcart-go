@@ -3,10 +3,10 @@
 A very simple multi-user shopping cart app with a "cart" (things to buy) and a "stash" (things in stock), drag'n'drop, realtime synchronized.
 It was just a test with golang http, websockets, go-bindata, html5 drag'n'drop,... but now I use it daily.
 
-* Click item to move between cart and stash, or drag and drop.
-* Double-click to rename.
-* Delete item: rename with empty name.
-* If the connection is interrupted, you can continue to use it, it will ask what to do if again online. Note that it is not a full progressive web app, you can't start-up offline.
+* Click/tap item to move between cart and stash, or drag and drop
+* Double-click/tap to rename (deleted if empty)
+* Long-touch: delete item
+* If the connection is interrupted, you can continue to use it, it will ask what to do if again online. Note that it is not a full progressive web app, you can't start-up offline
 
 ### Run
 
@@ -15,8 +15,8 @@ Run it behind a SSL reverse proxy (websocket is at /ws), see below!
 Add user to htpasswd password file (`-c` creates a new file):
 
 ```
-htpasswd -c wshoppingcart.htpasswd <username>
-htpasswd wshoppingcart.htpasswd <anotheruser>
+htpasswd -c wshoppingcart-logins.htpasswd <username>
+htpasswd wshoppingcart-logins.htpasswd <anotheruser>
 ```
 
 Download the executable, put it on some server that is online 24/7, and run it.
