@@ -1,11 +1,12 @@
 # wshoppingcart-go
 
-A very simple multi-user shopping cart app with a "cart" (things to buy) and a "stash" (things in stock), drag'n'drop, realtime synchronized.
-It was just a test with golang http, websockets, go-bindata, html5 drag'n'drop,... but now I use it daily.
+A very simple multi-user shopping cart app with a "cart" (things to buy) and a "stash" (things in stock), drag'n'drop, realtime synchronized between clients.
+It was just a test with golang http, websockets, go-bindata, html5 drag'n'drop, but now I use it daily.
 
-* Click/tap item to move between cart and stash, or drag and drop
-* Double-click/tap to rename (deleted if empty)
+* Click/tap item to move between cart and stash
+* Double-click/tap to rename item (delete if empty)
 * Long-touch: delete item
+* Cart items can be reordered by drag'n'drop
 * If the connection is interrupted, you can continue to use it, it will ask what to do if again online. Note that it is not a full progressive web app, you can't start-up offline
 
 ### Run
@@ -81,6 +82,6 @@ RewriteRule .* "ws://localhost:8000%{REQUEST_URI}" [P]
 
 # uses
 
-* [html5sortable](http://lukasoppermann.github.io/html5sortable/index.html)
+* [SortableJS](https://github.com/SortableJS/Sortable)
 * [gorilla websocket](github.com/gorilla/websocket)
 * [js-mobile-console](http://b1narystudio.github.io/js-mobile-console/)

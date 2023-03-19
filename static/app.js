@@ -1,9 +1,13 @@
 
+"use strict"
+
 window.onload = function() {
 
     const LSLASTSYNCMS = "lastsyncms";
     const LSSEND2SERVER = "send2server";
     const SYNCTIMEOUTS = 60; // after this offline time in seconds, ask before pushing local changes.
+    const LONGPRESSDELETEMS = 600;
+    const TOUCHDRAGDELAYMS = 200;
 
     mobileConsole.show(); // https://github.com/B1naryStudio/js-mobile-console
     mobileConsole.options({ showOnError: true, proxyConsole: false, isCollapsed: true, catchErrors: true });
@@ -14,10 +18,20 @@ window.onload = function() {
     var help = document.getElementById("help");
     var wait = document.getElementById("wait");
 
+    var timer = null
+
+    var sortable = Sortable.create(cart, {
+        delay: TOUCHDRAGDELAYMS,
+        delayOnTouchOnly: true,
+        draggable: ".thing",
+        touchStartThreshold: 10,
+        onSort: function() {
+            sendItems();
+        }
+    })
+
     stash.style.display = "none";
     help.style.display = "none";
-    cart.addEventListener('sortupdate', function(e) { sendItems(); });
-    stash.addEventListener('sortupdate', function(e) { sendItems(); });
 
     document.getElementById("btogglestash").onclick = function() { 
         stash.style.display = (stash.style.display === "none") ? "block" : "none";
@@ -35,14 +49,14 @@ window.onload = function() {
     var wsWasOpen = false;
     var ws = null
     function startWebsocket() {
-        ws = new WebSocket(((this.location.protocol === "https:") ? "wss://" : "ws://") + location.host + "/ws");
-        ws.onopen = function(evt) {
-            console.log("wsOPEN ");
+        var wsurl = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/ws"
+        console.log("opening ws:", wsurl)
+        ws = new WebSocket(wsurl);
+        ws.onopen = function() {
             var ls = window.localStorage.getItem(LSSEND2SERVER);
             var lslastsyncms = parseInt(window.localStorage.getItem(LSLASTSYNCMS))
             if (ls) {
                 var secs = Math.round((Date.now() - lslastsyncms) / 1000);
-                console.log(`  secs = ${secs}`);
                 if (secs < SYNCTIMEOUTS || confirm(`Last sync with server is ${secs}s ago, should I push to server (cancel: poll)?`)) {
                     ws.send(ls);
                 }
@@ -52,8 +66,8 @@ window.onload = function() {
             ws.send(JSON.stringify({ command: "getthings" }));
             wsWasOpen = true;
         }
-        ws.onclose = function(evt) { // is also called after unsuccessful connection attempt!
-            console.log("wsCLOSE ", ws.readyState, wsWasOpen);
+        ws.onclose = function() { // is also called after unsuccessful connection attempt!
+            console.log("ws onclose: ", ws.readyState, wsWasOpen);
             if (wsWasOpen) updateLastsync();
             wait.style.display = "block"
             setTimeout(function(){startWebsocket()}, 500);
@@ -61,18 +75,15 @@ window.onload = function() {
             wsWasOpen = false;
         }
         ws.onmessage = function(evt) {
-            console.log("wsRESPONSE!");
             var j = JSON.parse(evt.data);
             if (j.command == "update") {
                 replaceChildren("cart", j.cart);
                 replaceChildren("stash", j.stash);
-                // (re)initialize drag drop and listen for sort events
-                var s = sortable('.grid', { acceptFrom: ".grid", items: ':not(.header)' })
                 updateLastsync();
             }
         }
         ws.onerror = function(evt) {
-            console.log("wsERROR: " + evt.data);
+            console.log("ws onerror: " + evt.data);
         }
     }
     startWebsocket()
@@ -80,7 +91,7 @@ window.onload = function() {
     function send2server(m) {
         if (ws == null || ws.readyState !== WebSocket.OPEN) {
             window.localStorage.setItem(LSSEND2SERVER, m);
-            console.log("can't send, queue! ws=", ws);
+            console.log("send2server: can't send, enqueue! ws=", ws);
         } else {
             ws.send(m);
             updateLastsync();
@@ -128,11 +139,12 @@ window.onload = function() {
         }
         e.addEventListener('touchstart', (event) => {  // mobile long press: delete
             longpresstimeout = setTimeout(function(){
+                // should cancel accidental drag here but can't be done: https://github.com/SortableJS/Sortable/issues/264
                 if (confirm('Really delete "' + event.target.innerHTML + '"?')) {
                     event.target.remove()
                     sendItems()
                 }
-            }, 500)
+            }, LONGPRESSDELETEMS)
         })
         function cancellongpress() {
             clearTimeout(longpresstimeout)
@@ -152,9 +164,9 @@ window.onload = function() {
     }
 
     function htmlColl2Arr(id) {
-        cis = document.getElementById(id).children;
+        var cis = document.getElementById(id).children;
         var arr = [];
-        for (i = 0; i < cis.length; i++) {
+        for (var i = 0; i < cis.length; i++) {
             if (cis[i].classList.contains("thing")) arr.push(cis[i].innerHTML);
         }
         return arr
@@ -165,15 +177,4 @@ window.onload = function() {
         editThing(n);
     }
 
-    // PWA stuff
-    // if ('serviceWorker' in navigator){
-    //     navigator.serviceWorker.register('/serviceWorker.js').then(function(registration){
-    //         console.log('service worker registration succeeded:',registration);
-    //     },
-    //     function(error){
-    //         console.log('service worker registration failed:',error);
-    //     });
-    // } else {
-    //     console.log('service workers are not supported.');
-    // }
 }

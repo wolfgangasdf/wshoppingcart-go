@@ -7,15 +7,12 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 
 	auth "github.com/abbot/go-http-auth"
 	"github.com/gorilla/websocket"
-	"github.com/valyala/fasttemplate"
 )
 
 var clients = make(map[*websocket.Conn]string) // connected clients, string is username
-var staticmodtime int64 = 0
 
 // Configure the upgrader
 var upgrader = websocket.Upgrader{
@@ -90,18 +87,7 @@ func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 }
 
 func handleFiles(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	switch r.Request.URL.RequestURI() {
-	case "/":
-		template := MustAsset("index.html")
-		t := fasttemplate.New(string(template), "{{", "}}")
-		t.Execute(w, map[string]interface{}{
-			"staticmodtime": strconv.FormatInt(staticmodtime, 10),
-		})
-	case "/serviceWorker.js", "/manifest.json": // PWA disabled
-		w.WriteHeader(404)
-	default:
-		http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
-	}
+	http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
 }
 
 func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
@@ -116,7 +102,7 @@ func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	for { // read loop
 		var msg Message
 		if err := ws.ReadJSON(&msg); err != nil {
-			log.Printf("error handleconn, remove client (%v) : %v", ws.RemoteAddr().String(), err)
+			log.Printf("error read, remove client (%v) : %v", ws.RemoteAddr().String(), err)
 			delete(clients, ws)
 			break
 		}
@@ -141,23 +127,11 @@ func main() {
 
 	conf := getConfig()
 
-	// get latest static file modTime to avoid js caching https://stackoverflow.com/a/8392506
-	for _, v := range _bindata {
-		a, err := v()
-		if err != nil {
-			log.Fatal(err)
-		}
-		if staticmodtime < a.info.ModTime().Unix() {
-			staticmodtime = a.info.ModTime().Unix()
-		}
-	}
-
-	// http basic auth
 	authenticator := auth.NewBasicAuthenticator("wshoppingcart", auth.HtpasswdFileProvider("wshoppingcart-logins.htpasswd"))
 	http.HandleFunc("/ws", authenticator.Wrap(handleWS))
 	http.HandleFunc("/", authenticator.Wrap(handleFiles))
 
-	log.Printf("Starting server on port %d...", conf.Port)
+	log.Printf("Starting server on :%d...", conf.Port)
 
 	var err error
 	server := &http.Server{Addr: fmt.Sprintf(":%d", conf.Port), Handler: nil}
