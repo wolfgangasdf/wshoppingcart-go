@@ -7,7 +7,7 @@ It was just a test with golang http, websockets, go-bindata, html5 drag'n'drop, 
 * Double-click/tap to rename item (delete if empty)
 * Long-touch: delete item
 * Cart items can be reordered by drag'n'drop
-* If the connection is interrupted, you can continue to use it, it will ask what to do if again online. Note that it is not a full progressive web app, you can't start-up offline
+* If the connection is interrupted, you can continue to use it, if there is a change conflict, it will ask what to do if again online. Note that it is not a full progressive web app, you can't start-up offline
 
 ### Run
 

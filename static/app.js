@@ -3,24 +3,27 @@
 
 window.onload = function() {
 
-    const LSLASTSYNCMS = "lastsyncms";
-    const LSSEND2SERVER = "send2server";
-    const SYNCTIMEOUTS = 60; // after this offline time in seconds, ask before pushing local changes.
+    const LSLASTSERVERSERIAL = "lastserverserial"
+    const LSHAVEUNSENTCHANGES = "haveunsentchanges"
     const LONGPRESSDELETEMS = 600;
     const TOUCHDRAGDELAYMS = 200;
-
-    mobileConsole.show(); // https://github.com/B1naryStudio/js-mobile-console
-    mobileConsole.options({ showOnError: true, proxyConsole: false, isCollapsed: true, catchErrors: true });
-    mobileConsole.toggleCollapsed();
 
     var cart = document.getElementById("cart");
     var stash = document.getElementById("stash");
     var help = document.getElementById("help");
     var wait = document.getElementById("wait");
 
+    var ws = null
     var timer = null
 
-    var sortable = Sortable.create(cart, {
+    stash.style.display = "none";
+    help.style.display = "none";
+
+    mobileConsole.show(); // https://github.com/B1naryStudio/js-mobile-console
+    mobileConsole.options({ showOnError: true, proxyConsole: false, isCollapsed: true, catchErrors: true });
+    mobileConsole.toggleCollapsed();
+
+    Sortable.create(cart, {
         delay: TOUCHDRAGDELAYMS,
         delayOnTouchOnly: true,
         draggable: ".thing",
@@ -30,79 +33,65 @@ window.onload = function() {
         }
     })
 
-    stash.style.display = "none";
-    help.style.display = "none";
-
     document.getElementById("btogglestash").onclick = function() { 
         stash.style.display = (stash.style.display === "none") ? "block" : "none";
     }
-
     document.getElementById("btogglehelp").onclick = function() { 
         help.style.display = (help.style.display === "none") ? "block" : "none";
     }
-
     document.getElementById("bcartadd").onclick = function() { addNew("cart") }
     document.getElementById("bstashadd").onclick = function() { addNew("stash") }
 
-    function updateLastsync() { window.localStorage.setItem(LSLASTSYNCMS, Date.now()); }
-
-    var wsWasOpen = false;
-    var ws = null
     function startWebsocket() {
         var wsurl = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/ws"
         console.log("opening ws:", wsurl)
         ws = new WebSocket(wsurl);
         ws.onopen = function() {
-            var ls = window.localStorage.getItem(LSSEND2SERVER);
-            var lslastsyncms = parseInt(window.localStorage.getItem(LSLASTSYNCMS))
-            if (ls) {
-                var secs = Math.round((Date.now() - lslastsyncms) / 1000);
-                if (secs < SYNCTIMEOUTS || confirm(`Last sync with server is ${secs}s ago, should I push to server (cancel: poll)?`)) {
-                    ws.send(ls);
-                }
-            }
-            window.localStorage.removeItem(LSSEND2SERVER);
             wait.style.display = "none"
             ws.send(JSON.stringify({ command: "getthings" }));
-            wsWasOpen = true;
         }
         ws.onclose = function() { // is also called after unsuccessful connection attempt!
-            console.log("ws onclose: ", ws.readyState, wsWasOpen);
-            if (wsWasOpen) updateLastsync();
+            console.log("ws onclose: ", ws.readyState);
             wait.style.display = "block"
             setTimeout(function(){startWebsocket()}, 500);
             ws = null;
-            wsWasOpen = false;
         }
         ws.onmessage = function(evt) {
             var j = JSON.parse(evt.data);
             if (j.command == "update") {
+                if (window.localStorage.getItem(LSHAVEUNSENTCHANGES) != null) {
+                    window.localStorage.removeItem(LSHAVEUNSENTCHANGES);
+                    if (parseInt(window.localStorage.getItem(LSLASTSERVERSERIAL)) == j.serial || confirm(`Local and server data modified, push to server (cancel: poll)?`)) { 
+                        sendItems()
+                        return
+                    }
+                }
+                window.localStorage.setItem(LSLASTSERVERSERIAL, j.serial)
                 replaceChildren("cart", j.cart);
                 replaceChildren("stash", j.stash);
-                updateLastsync();
             }
         }
         ws.onerror = function(evt) {
             console.log("ws onerror: " + evt.data);
         }
     }
-    startWebsocket()
 
-    function send2server(m) {
+    function send2server(m, newserial) {
         if (ws == null || ws.readyState !== WebSocket.OPEN) {
-            window.localStorage.setItem(LSSEND2SERVER, m);
-            console.log("send2server: can't send, enqueue! ws=", ws);
+            window.localStorage.setItem(LSHAVEUNSENTCHANGES, "1");
+            console.log("send2server: can't send, flag unsaved changes! ws=", ws);
         } else {
             ws.send(m);
-            updateLastsync();
+            window.localStorage.setItem(LSLASTSERVERSERIAL, newserial) // if send was successful, store new server serial
         }
     }
 
     function sendItems() {
         var ac = htmlColl2Arr("cart")
         var as = htmlColl2Arr("stash")
-        var msg = { command: "updateFromClient", cart: ac, stash: as };
-        send2server(JSON.stringify(msg))
+        var newserial = parseInt(window.localStorage.getItem(LSLASTSERVERSERIAL)) + 1
+        var msg = { command: "updateFromClient", cart: ac, stash: as, serial: newserial };
+        send2server(JSON.stringify(msg), newserial)
     }
 
     function editThing(n) {
@@ -176,5 +165,7 @@ window.onload = function() {
         var n = document.getElementById(parentid).appendChild(newThing(""));
         editThing(n);
     }
+
+    startWebsocket()
 
 }

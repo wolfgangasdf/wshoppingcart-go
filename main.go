@@ -14,23 +14,21 @@ import (
 
 var clients = make(map[*websocket.Conn]string) // connected clients, string is username
 
-// Configure the upgrader
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
 }
 
-// Config store gloabl settings
 type Config struct {
 	Port int `json:"port"`
 }
 
-// Message for socket commun
 type Message struct {
 	Command string   `json:"command"`
 	Cart    []string `json:"cart"`
 	Stash   []string `json:"stash"`
+	Serial  int      `json:"serial"`
 }
 
 func getConfig() *Config {
@@ -62,7 +60,7 @@ func thingsRead(user string) Message {
 }
 
 func thingsWrite(user string, msg *Message) {
-	msg.Command = ""        // message is not stored
+	msg.Command = ""        // command is not stored
 	sort.Strings(msg.Stash) // sort stash
 	b, err := json.Marshal(msg)
 	if err != nil {
