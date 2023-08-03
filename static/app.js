@@ -47,19 +47,22 @@ window.onload = function() {
         console.log("opening ws:", wsurl)
         ws = new WebSocket(wsurl);
         ws.onopen = function() {
+            console.log("ws onopen!")
             wait.style.display = "none"
             ws.send(JSON.stringify({ command: "getthings" }));
         }
-        ws.onclose = function() { // is also called after unsuccessful connection attempt!
-            console.log("ws onclose: ", ws.readyState);
+        ws.onclose = function(evt) { // is also called after unsuccessful connection attempt!
+            console.log("ws.onclose: ", ws.readyState, " evt=", evt);
             wait.style.display = "block"
             setTimeout(function(){startWebsocket()}, 500);
             ws = null;
         }
         ws.onmessage = function(evt) {
+            console.log("ws.onmessage: evt=", evt)
             var j = JSON.parse(evt.data);
             if (j.command == "update") {
                 if (window.localStorage.getItem(LSHAVEUNSENTCHANGES) != null) {
+                    console.log("  update: have unsentchanges!")
                     window.localStorage.removeItem(LSHAVEUNSENTCHANGES);
                     if (parseInt(window.localStorage.getItem(LSLASTSERVERSERIAL)) == j.serial || confirm(`Local and server data modified, push to server (cancel: poll)?`)) { 
                         sendItems()
@@ -72,14 +75,15 @@ window.onload = function() {
             }
         }
         ws.onerror = function(evt) {
-            console.log("ws onerror: " + evt.data);
+            console.log("ws onerror evt=", evt);
         }
     }
 
     function send2server(m, newserial) {
+        console.log("send2server: newserial=", newserial);
         if (ws == null || ws.readyState !== WebSocket.OPEN) {
-            window.localStorage.setItem(LSHAVEUNSENTCHANGES, "1");
             console.log("send2server: can't send, flag unsaved changes! ws=", ws);
+            window.localStorage.setItem(LSHAVEUNSENTCHANGES, "1");
         } else {
             ws.send(m);
             window.localStorage.setItem(LSLASTSERVERSERIAL, newserial) // if send was successful, store new server serial

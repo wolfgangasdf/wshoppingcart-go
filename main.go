@@ -91,7 +91,8 @@ func handleFiles(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	ws, err := upgrader.Upgrade(w, &r.Request, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("ws error: %v", err)
+		return
 	}
 	defer ws.Close()
 

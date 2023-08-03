@@ -54,17 +54,19 @@ GOOS=linux GOARCH=amd64 go build -o wshoppingcart-linux-amd64 # cross-compile, e
 ServerAdmin example@gmail.com
 ErrorLog ${APACHE_LOG_DIR}/error.log
 CustomLog ${APACHE_LOG_DIR}/access.log combined
-# hsts
-Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
 ServerName wshoppingcart.example.org
 SSLCertificateFile /etc/letsencrypt/live/example/fullchain.pem
 SSLCertificateKeyFile /etc/letsencrypt/live/example/privkey.pem
 Include /etc/letsencrypt/options-ssl-apache.conf
 
+# hsts
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
 # reverse proxy
 SSLProxyEngine on
 ProxyPreserveHost On
-ProxyPass / http://127.0.0.1:8000/
+ProxyPass / http://127.0.0.1:8000/ retry=1
 ProxyPassReverse / http://127.0.0.1:8000/
 ProxyRequests Off
 
@@ -74,7 +76,7 @@ ProxyPassReverse /ws ws://127.0.0.1:8000/ws
 RewriteEngine on
 RewriteCond %{HTTP:Upgrade} websocket [NC]
 RewriteCond %{HTTP:Connection} upgrade [NC]
-RewriteRule .* "ws://localhost:8000%{REQUEST_URI}" [P]
+RewriteRule /(.*) "ws://localhost:8000/$1" [P,L]
 
 </VirtualHost>
 </IfModule>
