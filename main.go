@@ -1,5 +1,7 @@
 package main
 
+// TODO: too many sessions, solve somehow!
+
 import (
 	"encoding/json"
 	"fmt"
@@ -9,10 +11,12 @@ import (
 	"sort"
 
 	auth "github.com/abbot/go-http-auth"
+	"github.com/abraithwaite/jeff"
+	"github.com/abraithwaite/jeff/memory"
 	"github.com/gorilla/websocket"
 )
 
-var clients = make(map[*websocket.Conn]string) // connected clients, string is username
+var clients = make(map[*websocket.Conn]jeff.Session) // connected clients TODO: somehow redundant <> jeff.sessions...
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -29,6 +33,10 @@ type Message struct {
 	Cart    []string `json:"cart"`
 	Stash   []string `json:"stash"`
 	Serial  int      `json:"serial"`
+}
+
+type server struct {
+	jeff *jeff.Jeff
 }
 
 func getConfig() *Config {
@@ -80,23 +88,43 @@ func sendHandleError(ws *websocket.Conn, user string, msg Message) {
 	if err != nil {
 		log.Printf("  sending error, close ws and remove from clients: %v", err)
 		ws.Close()
-		delete(clients, ws)
+		delete(clients, ws) // TODO is jeff session closed?
 	}
 }
 
-func handleFiles(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	http.FileServer(AssetFile()).ServeHTTP(w, &r.Request)
+func (s *server) handleLogin(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+	log.Printf("handleLogin: r.u=%v url=%v\n", r.Username, r.Request.URL)
+	if r.Username != "" {
+		err := s.jeff.Set(r.Context(), w, []byte(r.Username), []byte(r.UserAgent()))
+		if err != nil {
+			log.Println("jeff set error=", err)
+			return // TODO err
+		}
+	}
+	sl, _ := s.jeff.SessionsForKey(r.Context(), []byte(r.Username))
+	for _, s := range sl {
+		log.Printf("  jeff session for user %v: %v\n", r.Username, string(s.Meta))
+	}
+	http.Redirect(w, &r.Request, "/", http.StatusFound)
 }
 
-func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
-	ws, err := upgrader.Upgrade(w, &r.Request, nil)
+func (s *server) handleFiles(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handlefiles: url=%v\n", r.URL)
+	http.FileServer(AssetFile()).ServeHTTP(w, r)
+}
+
+func (s *server) handleWS(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handlews: url=%v\n", r.URL)
+	sess := jeff.ActiveSession(r.Context())
+	user := string(sess.Key)
+	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("ws error: %v", err)
 		return
 	}
 	defer ws.Close()
 
-	clients[ws] = r.Username // register client websocket
+	clients[ws] = sess // register client websocket
 
 	for { // read loop
 		var msg Message
@@ -107,15 +135,15 @@ func handleWS(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 		}
 		log.Print("received cmd: " + msg.Command)
 		if msg.Command == "getthings" { // only for this client
-			msg2 := thingsRead(r.Username)
+			msg2 := thingsRead(user)
 			msg2.Command = "update"
-			sendHandleError(ws, r.Username, msg2)
+			sendHandleError(ws, user, msg2)
 		} else if msg.Command == "updateFromClient" {
-			thingsWrite(r.Username, &msg)
+			thingsWrite(user, &msg)
 			msg.Command = "update"
-			for cws, cuser := range clients { // send to others
-				if cuser == r.Username && cws != ws {
-					sendHandleError(cws, r.Username, msg)
+			for cws, s := range clients { // send to others for same user!
+				if string(s.Key) == user && cws != ws {
+					sendHandleError(cws, user, msg)
 				}
 			}
 		}
@@ -126,9 +154,20 @@ func main() {
 
 	conf := getConfig()
 
+	// jeff manages session authentication also for websocket since http basic can't re-new ws auth without http reload:
+	// https://websockets.readthedocs.io/en/stable/topics/authentication.html
+	jeffstorage := memory.New()
+	s := &server{
+		jeff: jeff.New(jeffstorage, jeff.Redirect(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/login", http.StatusFound)
+			}))),
+	}
+
 	authenticator := auth.NewBasicAuthenticator("wshoppingcart", auth.HtpasswdFileProvider("wshoppingcart-logins.htpasswd"))
-	http.HandleFunc("/ws", authenticator.Wrap(handleWS))
-	http.HandleFunc("/", authenticator.Wrap(handleFiles))
+	http.Handle("/ws", s.jeff.WrapFunc(s.handleWS))
+	http.HandleFunc("/", s.jeff.WrapFunc(s.handleFiles))
+	http.HandleFunc("/login", authenticator.Wrap(s.handleLogin))
 
 	log.Printf("Starting server on :%d...", conf.Port)
 
