@@ -13,11 +13,10 @@ It was just a test with golang http, websockets, go-bindata, html5 drag'n'drop, 
 
 Run it behind a SSL reverse proxy (websocket is at /ws), see below! 
 
-Add user to htpasswd password file (`-c` creates a new file):
+Create user database file `wshoppingcart-users.json` (no need to restart if changed) with content
 
 ```
-htpasswd -c wshoppingcart-logins.htpasswd <username>
-htpasswd wshoppingcart-logins.htpasswd <anotheruser>
+{"usenameA":"passwordA", "usernameB":"passwordB"}
 ```
 
 Download the executable, put it on some server that is online 24/7, and run it.
@@ -38,8 +37,8 @@ The user shopping carts are saved as `wshoppingcart-user-<username>.json`
 ```
 go get -u github.com/go-bindata/go-bindata/v3/... 
 # one of:
-go-bindata -fs -prefix "static/" static/        # put static files into bindata.go
-go-bindata -debug -fs -prefix "static/" static/ # development: use normal files via bindata.go
+go-bindata -fs -prefix "static/" static/***        # put static files into bindata.go
+go-bindata -debug -fs -prefix "static/" static/*** # development: use normal files via bindata.go
 # one of:
 go build
 GOOS=linux GOARCH=amd64 go build -o wshoppingcart-linux-amd64 # cross-compile, e.g. for linux
@@ -86,4 +85,5 @@ RewriteRule /(.*) "ws://localhost:8000/$1" [P,L]
 
 * [SortableJS](https://github.com/SortableJS/Sortable)
 * [gorilla websocket](github.com/gorilla/websocket)
+* [jeff session management](https://github.com/abraithwaite/jeff)
 * [js-mobile-console](http://b1narystudio.github.io/js-mobile-console/)

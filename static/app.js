@@ -41,6 +41,7 @@ window.onload = function() {
     }
     document.getElementById("bcartadd").onclick = function() { addNew("cart") }
     document.getElementById("bstashadd").onclick = function() { addNew("stash") }
+    document.getElementById("blogout").onclick = function() { $.cookie('_gosession', "", -1); }
 
     function startWebsocket() {
         var wsurl = ((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/ws"
