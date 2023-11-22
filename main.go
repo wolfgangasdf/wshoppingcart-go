@@ -9,12 +9,15 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"time"
 
 	"crypto/subtle"
 
 	"github.com/abraithwaite/jeff"
 	"github.com/abraithwaite/jeff/memory"
 	"github.com/gorilla/websocket"
+	"github.com/sethvargo/go-limiter/httplimit"
+	"github.com/sethvargo/go-limiter/memorystore"
 )
 
 var clients = make(map[*websocket.Conn]jeff.Session) // connected clients
@@ -209,6 +212,19 @@ func main() {
 
 	var jeffstorage = memory.New()
 
+	// rate limiter
+	store, err := memorystore.New(&memorystore.Config{
+		Tokens:   5,
+		Interval: time.Minute,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	middleware, err := httplimit.NewMiddleware(store, httplimit.IPKeyFunc())
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	s := &server{
 		jeff: jeff.New(jeffstorage, jeff.Redirect(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -218,7 +234,7 @@ func main() {
 
 	http.HandleFunc("/p/", s.handleFiles)
 	http.HandleFunc("/logout", s.jeff.WrapFunc(s.handleLogout))
-	http.HandleFunc("/login", s.handleLogin)
+	http.Handle("/login", middleware.Handle(http.HandlerFunc(s.handleLogin)))
 	http.Handle("/ws", s.jeff.WrapFunc(s.handleWS))
 	http.Handle("/", s.jeff.WrapFunc(s.handleFiles)) // jeff redirects to login if needed
 
@@ -227,7 +243,7 @@ func main() {
 
 	log.Printf("Starting server on :%d...", conf.Port)
 	server := &http.Server{Addr: fmt.Sprintf(":%d", conf.Port), Handler: nil}
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

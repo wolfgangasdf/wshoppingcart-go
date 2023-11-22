@@ -23,7 +23,7 @@ Download the executable, put it on some server that is online 24/7, and run it.
 
 
 ### Settings file 
-`wshoppingcart-settings.json`: Leave out the ssl settings to use http, port defaults to 8000:
+`wshoppingcart-settings.json`: port defaults to 8000:
 ```
 {
 "port" : 8000,
@@ -87,3 +87,4 @@ RewriteRule /(.*) "ws://localhost:8000/$1" [P,L]
 * [gorilla websocket](github.com/gorilla/websocket)
 * [jeff session management](https://github.com/abraithwaite/jeff)
 * [js-mobile-console](http://b1narystudio.github.io/js-mobile-console/)
+* [go-limiter](https://github.com/sethvargo/go-limiter)
