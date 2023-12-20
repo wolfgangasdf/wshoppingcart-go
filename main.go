@@ -14,17 +14,18 @@ import (
 	"crypto/subtle"
 
 	"github.com/abraithwaite/jeff"
-	"github.com/abraithwaite/jeff/memory"
 	"github.com/gorilla/websocket"
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/sethvargo/go-limiter/memorystore"
+	"github.com/wolfgangasdf/wshoppingcart-go/jeffdisk"
 )
 
 var clients = make(map[*websocket.Conn]jeff.Session) // connected clients
 var usersdebug []string                              // keep track of users that logged in for debug
 
 type server struct {
-	jeff *jeff.Jeff
+	jeff        *jeff.Jeff
+	jeffstorage jeff.Storage
 }
 
 var upgrader = websocket.Upgrader{
@@ -210,8 +211,6 @@ func main() {
 
 	conf := getConfig()
 
-	var jeffstorage = memory.New()
-
 	// rate limiter
 	store, err := memorystore.New(&memorystore.Config{
 		Tokens:   5,
@@ -225,11 +224,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	js := jeffdisk.New("wshoppingcart-sessions.gob")
 	s := &server{
-		jeff: jeff.New(jeffstorage, jeff.Redirect(
+		jeffstorage: js,
+		jeff: jeff.New(js, jeff.Redirect(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, "/p/login.html", http.StatusFound)
-			}))),
+			})), jeff.Insecure), // insecure cookie important, otherwise cookies don't work over http in LAN.
 	}
 
 	http.HandleFunc("/p/", s.handleFiles)
@@ -241,7 +242,7 @@ func main() {
 	log.Println("Press any key to show debug information...")
 	go s.printDebugOnKey()
 
-	log.Printf("Starting server on :%d...", conf.Port)
+	log.Printf("Starting server on http://localhost:%d ...", conf.Port)
 	server := &http.Server{Addr: fmt.Sprintf(":%d", conf.Port), Handler: nil}
 	err = server.ListenAndServe()
 	if err != nil {

@@ -4,3 +4,4 @@ wshoppingcart-*.json
 wshoppingcart-*.htpasswd
 bindata.go
 wshoppingcart-linux-amd64
+wshoppingcart-sessions.gob
