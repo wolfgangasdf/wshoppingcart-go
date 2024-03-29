@@ -6,17 +6,19 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="white"/>
     <title>wshoppingcart</title>
-    <link rel="shortcut icon" href="/p/favicon.png">
     <link rel="stylesheet" href="/p/style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/p/apple-touch-icon.png">
+    <link rel="icon" type="image/svg+xml" href="/p/favicon.svg">
+    <link rel="manifest" href="/p/site.webmanifest">
 </head>
 <body>
     <h1>Login</h1>
     <form method="post" action="/login">
         <label for="name">User name</label>
-        <input type="text" id="name" name="name">
+        <input type="text" id="name" name="name" autocapitalize="none">
         <br>
         <label for="password">Password</label>
-        <input type="password" id="password" name="password">
+        <input type="password" id="password" name="password" autocapitalize="none">
         <br>
         <button type="submit" class="bigbutt">Login</button>
     </form>

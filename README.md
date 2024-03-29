@@ -36,12 +36,14 @@ The user shopping carts are saved as `wshoppingcart-user-<username>.json`
 ### build
 ```
 go get -u github.com/go-bindata/go-bindata/v3/... 
-# one of:
-go-bindata -fs -prefix "static/" static/***        # put static files into bindata.go
-go-bindata -debug -fs -prefix "static/" static/*** # development: use normal files via bindata.go
-# one of:
+# production:
+go-bindata -fs -prefix "static/" static/***        
+# debug:
+go-bindata -debug -fs -prefix "static/" static/*** 
+# build:
 go build
-GOOS=linux GOARCH=amd64 go build -o wshoppingcart-linux-amd64 # cross-compile, e.g. for linux
+# or cross-compile:
+GOOS=linux GOARCH=amd64 go build -o wshoppingcart-linux-amd64 
 ```
 
 ### Example apache2 reverse proxy configuration with SSL
