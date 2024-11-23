@@ -115,23 +115,23 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	pass := r.FormValue("password")
 	log.Printf("handleLogin: u=%v p=%v url=%v\n", name, pass, r.URL)
-	if name == "" || pass == "" {
-		w.WriteHeader(400)
-		return
-	}
-	userMap := readUserDB()
-	if subtle.ConstantTimeCompare([]byte(userMap[name]), []byte(pass)) == 1 {
-		log.Println("correct password!")
-		err := s.jeff.Set(r.Context(), w, []byte(name), []byte(r.UserAgent()))
-		if err != nil {
-			log.Println("jeff set error=", err)
-			w.WriteHeader(http.StatusInternalServerError)
+	if !(name == "" || pass == "") {
+		userMap := readUserDB()
+		if subtle.ConstantTimeCompare([]byte(userMap[name]), []byte(pass)) == 1 {
+			log.Println("correct password for user ", name)
+			err := s.jeff.Set(r.Context(), w, []byte(name), []byte(r.UserAgent()))
+			if err != nil {
+				log.Println("jeff set error=", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			usersdebug = append(usersdebug, name)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		usersdebug = append(usersdebug, name)
 	}
-
-	http.Redirect(w, r, "/", http.StatusFound)
+	w.Write([]byte(fmt.Sprintf("wrong user or pass: %s:%s", name, pass)))
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +143,6 @@ func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.jeff.Clear(r.Context(), w)
-
 	http.Redirect(w, r, "/p/login.html", http.StatusFound)
 }
 

@@ -1,6 +1,6 @@
 module github.com/wolfgangasdf/wshoppingcart-go
 
-go 1.22
+go 1.23
 
 require (
 	github.com/abraithwaite/jeff v0.2.1
@@ -9,6 +9,6 @@ require (
 )
 
 require (
-	github.com/philhofer/fwd v1.1.3-0.20240612014219-fbbf4953d986 // indirect
-	github.com/tinylib/msgp v1.2.0 // indirect
+	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
+	github.com/tinylib/msgp v1.2.4 // indirect
 )
