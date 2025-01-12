@@ -3,12 +3,14 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"crypto/subtle"
@@ -87,8 +89,10 @@ func thingsRead(user string) Message {
 }
 
 func thingsWrite(user string, msg *Message) {
-	msg.Command = ""        // command is not stored
-	sort.Strings(msg.Stash) // sort stash
+	msg.Command = ""                            // command is not stored
+	sort.Slice(msg.Stash, func(i, j int) bool { // sort stash case-insensitively
+		return strings.ToLower(msg.Stash[i]) < strings.ToLower(msg.Stash[j])
+	})
 	b, err := json.Marshal(msg)
 	if err != nil {
 		log.Fatal("Can't marshal: " + err.Error())
@@ -198,7 +202,7 @@ func (s *server) printDebugOnKey() {
 		}
 
 		for _, name := range usersdebug {
-			sl, _ := s.jeff.SessionsForKey(nil, []byte(name))
+			sl, _ := s.jeff.SessionsForKey(context.TODO(), []byte(name))
 			for _, s := range sl {
 				log.Printf("  debug: have jeff session for user %v: %v\n", name, s.Token)
 			}
