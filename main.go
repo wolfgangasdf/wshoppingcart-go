@@ -232,7 +232,21 @@ func main() {
 		jeffstorage: js,
 		jeff: jeff.New(js, jeff.Redirect(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				http.Redirect(w, r, "/p/login.html", http.StatusFound)
+				log.Println("jeff redirect: ", r.URL.Path)
+				if r.URL.Path == "/ws" {
+					// issue websocket: ws error can't discriminate unauthorized from not reachable: https://stackoverflow.com/a/50685387
+					ws, err := upgrader.Upgrade(w, r, nil)
+					if err != nil {
+						log.Printf("jeff redirect: ws error: %v", err)
+						return
+					}
+					defer ws.Close()
+					var msg Message
+					msg.Command = "unauthorized"
+					ws.WriteJSON(msg)
+				} else {
+					http.Redirect(w, r, "/p/login.html", http.StatusFound)
+				}
 			})), jeff.Insecure), // insecure cookie important, otherwise cookies don't work over http in LAN.
 	}
 

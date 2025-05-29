@@ -61,7 +61,9 @@ window.onload = function() {
         ws.onmessage = function(evt) {
             console.log("ws.onmessage: evt=", evt)
             var j = JSON.parse(evt.data);
-            if (j.command == "update") {
+            if (j.command == "unauthorized") {
+                location.href = "/p/login.html"
+            } else if (j.command == "update") {
                 if (window.localStorage.getItem(LSHAVEUNSENTCHANGES) != null) {
                     console.log("  update: have unsentchanges!")
                     window.localStorage.removeItem(LSHAVEUNSENTCHANGES);

@@ -37,21 +37,34 @@ body, input {
 }
 
 .button {
-    color: "#333";
-    background-color: "#FA2";
+    color: #333;
+    background-color: rgb(213, 213, 213);
     border-radius: 7px;
-    border: "none";
+    border: none;
     font-size: x-large;
 }
 
 .bigbutt {
-    color: "#333";
-    background-color: "#FA2";
+    color: #333;
+    background-color: rgb(213, 213, 213);
     border-radius: 7px;
-    border: "none";
+    border: none;
     font-size: x-large;
     width: 100%;
     height: 3em;
+}
+
+.abutt {
+    display: inline-block;
+    color: #333;
+    background-color: rgb(152, 152, 152);
+    border-radius: 7px;
+    border: none;
+    font-size: x-large;
+    padding: 5px;
+    margin: 5px;
+    text-decoration : none;
+    text-align: center;
 }
 
 .toggle {

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" href="/p/style.css">
-    <link rel="stylesheet" href="/mobile-console.min.css">
+    <link rel="stylesheet" href="/p/mobile-console.min.css">
     <link rel="apple-touch-icon" href="/p/apple-touch-icon.png">
     <link rel="icon" href="/p/favicon.ico">
     <link rel="manifest" href="/p/site.webmanifest">
@@ -11,7 +11,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="white"/>
     <title>wshoppingcart</title>
-    <script src="/Sortable.min.js"></script>
+    <script src="/p/Sortable.min.js"></script>
 </head>
 <body>
     <noscript>I need javascript.</noscript>
@@ -39,11 +39,13 @@
         * long click: delete<br>
         <br>
         <form method="post" action="/logout">
-            <button id="blogout">logout</button>
+            <button id="blogout" class="abutt">logout</button>
         </form>
-        <a href="https://github.com/wolfgangasdf/wshoppingcart-go" target="_blank">homepage</a>
+        <button class="abutt" onclick="window.location.reload(true);">reload</button>
+        <br>
+        <a href="https://github.com/wolfgangasdf/wshoppingcart-go" class="abutt" target="_blank">homepage</a>
     </div>
-    <script src="/mobile-console.min.js"></script>
+    <script src="/p/mobile-console.min.js"></script>
 </body>
 
 <script src="/app.js"></script>
